@@ -12,6 +12,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from save_in_proper_json_format import add_caption_and_save_in_proper_format
+from calculate_AUROC import calculate_AUROC
 
 def get_pictures(folder_path):
     jpg_files = [f for f in os.listdir(folder_path) if f.endswith('.jpg')]
@@ -92,7 +93,7 @@ if __name__ == "__main__":
 
         # I suggest to use these actions because they are actions of sequential nature, I.e. they have a clear start / during / end status.
         # But, before actually removing other categories lets look at picture tuples of all categories from small batch.
-        action_to_keep = ["baseball_pitch", "baseball_swing", "golf_swing", "tennis_forehand", "tennis_serve"] # Add categories/actions that we want to use here
+        """ action_to_keep = ["baseball_pitch", "baseball_swing", "golf_swing", "tennis_forehand", "tennis_serve"] # Add categories/actions that we want to use here
         needs_to_be_vetted = ["tennis_forehand", "baseball_swing"] # Is useable, but looks to have some unclear/bad examples 
 
         dev_batch = fetch_dict("action_tuples_small_batch")
@@ -100,7 +101,7 @@ if __name__ == "__main__":
         
         dev_batch_filtered = filter_categories(dev_batch, action_to_keep)
         full_batch_filtered = filter_categories(full_batch, action_to_keep)
-
+        """
 
         # Uncomment this if we want to change how/what is being saved in the properly formatted json-files.
         """dev_batch_properly_formatted = add_caption_and_save_in_proper_format(dev_batch_filtered)
@@ -108,6 +109,18 @@ if __name__ == "__main__":
         
         save_dict(dev_batch_properly_formatted, "temporal_stage_small")
         save_dict(full_batch_properly_formatted, "temporal_stage")"""
+
+        # CALCULATE AUROC METRIC (VALSE repository doesn't do this apparently)
+
+        #1. resaving results because the VALSE authors did it horribly
+        """results = fetch_dict("plurals-mini")
+        save_dict(results, "plurals-mini_properly_formatted")
+        """
+        #2. Ok now actually calculating it
+        llm_results = fetch_dict("temporal_stage_results_properly_formatted")
+        AUROC_metrics = calculate_AUROC(llm_results)
+        print("auroc: ", AUROC_metrics)
+        
 
 
         #TODO 
