@@ -1,0 +1,27 @@
+{
+    "baseball pitch": {
+        "start": 0.4,
+        "middle": 0.4,
+        "end": 1.0
+    },
+    "baseball swing": {
+        "start": 0.1,
+        "middle": 0.4,
+        "end": 1.0
+    },
+    "golf swing": {
+        "start": 0.9,
+        "middle": 0.2,
+        "end": 0.5
+    },
+    "tennis forehand": {
+        "start": 0.2,
+        "middle": 0.5,
+        "end": 0.4
+    },
+    "tennis serve": {
+        "start": 0.6,
+        "middle": 0.5,
+        "end": 0.6
+    }
+}

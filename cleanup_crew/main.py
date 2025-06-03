@@ -1,14 +1,9 @@
-# TODO 
-# 1. Fetch pictures
-# 2. Remove useless categories
-# 3. Filter to triplets (first on small batch)
-# 4. Run on full dataset (seperate categories and make indexing stable (0,1,2))
-# 5. Copy small batch to use as sample for development and testing
-# 6. save sample and full batch seperately
 
 import os
+import numpy as np
 from scipy.io import loadmat
 import json
+import re
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from save_in_proper_json_format import add_caption_and_save_in_proper_format
@@ -84,8 +79,61 @@ def filter_categories(dict, to_keep):
     filtered_dict = {key: value for key, value in dict.items() if key in to_keep}
     return filtered_dict
 
+def calc_category_action(json_file, model_name=None, unimodal=False, manual=True, small_keys=None):
 
+    baseball_pitch = {"start": [] , "middle": [], "end": []}
+    baseball_swing = {"start": [] , "middle": [], "end": []}
+    golf_swing = {"start": [] , "middle": [], "end": []}
+    tennis_forehand = {"start": [] , "middle": [], "end": []}
+    tennis_serve = {"start": [] , "middle": [], "end": []} 
+    
+    category_patterns = [
+        ("baseball pitch", baseball_pitch),
+        ("baseball swing", baseball_swing),
+        ("golf swing", golf_swing),
+        ( "tennis forehand", tennis_forehand),
+         ("tennis serve", tennis_serve)
+    ]
+    if not manual: #Filter llm-results to only be the (150) same instances as in the manual results
+        json_file = {k: json_file[k] for k in small_keys if k in json_file}
 
+    last_two_words_pattern = r'(\b\w+\b)[^\w]+(\b\w+\b)\s*$'
+    for key, value in json_file.items():
+        category = re.search(last_two_words_pattern, value["caption"]).group()
+        for pattern, dict in category_patterns:
+            if pattern == category:
+                stage = value["classes"]
+
+                if manual:
+                    acc = value["mturk"]["caption"] / 6 # 6 evaluators
+                    dict[stage].append(acc)
+                else:
+                    if unimodal:
+                        print("category: ", category)
+                        print("stage: ", stage)
+                        print("value: ", value[model_name]["caption"])
+                        print("--------------------")
+                        dict[stage] = value[model_name]["caption"]
+                    else:
+                        if value[model_name]["caption"] > value[model_name]["foil"]:
+                            dict[stage].append(1)
+                        else: 
+                            dict[stage].append(0)
+
+    
+    final_result = {}
+    for name, cat in category_patterns:
+        final_result[name] = {}
+
+        for stage, vals in cat.items():
+            if unimodal:
+               final_result[name][stage] = vals 
+            else:
+                stage_avg = sum(vals) / len(vals)
+
+                final_result[name][stage] = stage_avg
+                
+    return final_result
 if __name__ == "__main__":
     def main():
         #This is already been run, and needs only to be run again if we want to change which frames are retrieved.
@@ -117,9 +165,47 @@ if __name__ == "__main__":
         save_dict(results, "plurals-mini_properly_formatted")
         """
         #2. Ok now actually calculating it
-        llm_results = fetch_dict("temporal_stage_results_properly_formatted")
+        """llm_results = fetch_dict("temporal_stage_results_properly_formatted")
         AUROC_metrics = calculate_AUROC(llm_results)
         print("auroc: ", AUROC_metrics)
+        """
+
+        # CALCULATE PAIRWISE ACCURACY FOR DISTINCT CATEGORIES AND STAGES
+
+        # on manual categorizations
+        """manual_vals = fetch_dict("temporal_stage_small_w_ishaan_toby")
+        manual_results = calc_category_action(manual_vals)
+        save_dict(manual_results, "manual_results")"""
+
+        #On llm (lxmert/) 
+        """llm_results = fetch_dict("temporal_stage_results_properly_formatted")
+        manual_vals_keys = fetch_dict("temporal_stage_small_w_ishaan_toby").keys()
+        all_keys = fetch_dict("temporal_stage_results_properly_formatted").keys()
+        llm_results = calc_category_action(llm_results, "lxmert", manual=False, small_keys=all_keys)
+        save_dict(llm_results, "llm_results_all")"""
+        
+
+        # CALCULATE PERPLEXITY FOR DISTINCT CATEGORIES AND STAGES
+
+        # On llm (gpt1)
+        
+        """llm_results = fetch_dict("temporal_stage_gpt1_perplexity")
+        #manual_vals_keys = fetch_dict("temporal_stage_small_w_ishaan_toby").keys()
+        all_keys = fetch_dict("temporal_stage_results_properly_formatted").keys()
+        llm_results = calc_category_action(llm_results, "gpt1", manual=False, unimodal=True, small_keys=all_keys)
+        save_dict(llm_results, "llm_gpt1_perplexity_results_all")"""
+
+        # On llm (gpt2)
+
+        """llm_results = fetch_dict("temporal_stage_gpt2_perplexity")
+        #manual_vals_keys = fetch_dict("temporal_stage_small_w_ishaan_toby").keys()
+        all_keys = fetch_dict("temporal_stage_results_properly_formatted").keys()
+        llm_results = calc_category_action(llm_results, "gpt2", manual=False, unimodal=True, small_keys=all_keys)
+        save_dict(llm_results, "llm_gpt2_perplexity_results_all")"""
+
+
+
+
         
 
 
